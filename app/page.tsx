@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface ActionItem {
   step: string;
@@ -24,6 +24,11 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ProcessingResult | null>(null);
   const [error, setError] = useState<string>('');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLanguageSelect = (language: string) => {
     setSelectedLanguage(language);
@@ -34,7 +39,8 @@ export default function Home() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      if (selectedFile.type !== 'application/pdf') {
+      // Check if it's a PDF file
+      if (!selectedFile.name.toLowerCase().endsWith('.pdf') && selectedFile.type !== 'application/pdf') {
         setError('Please upload a PDF file');
         setFile(null);
         return;
@@ -56,36 +62,19 @@ export default function Home() {
     formData.append('language', selectedLanguage);
 
     try {
-      console.log('Submitting:', { fileName: file.name, language: selectedLanguage });
-      
       const response = await fetch('/api/translateFile', {
         method: 'POST',
         body: formData,
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response content-type:', response.headers.get('content-type'));
-
-      // Get response text first to debug
-      const responseText = await response.text();
-      console.log('Raw response:', responseText);
-
-      // Check if response is empty
-      if (!responseText) {
-        throw new Error('Server returned empty response');
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('text/html')) {
+        const htmlText = await response.text();
+        console.error('Received HTML instead of JSON:', htmlText.substring(0, 500));
+        throw new Error('Server returned an error page. Check the server console for details.');
       }
 
-      // Try to parse as JSON
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('JSON Parse Error:', parseError);
-        console.error('Response that failed to parse:', responseText);
-        throw new Error(`Server error: ${responseText.substring(0, 200)}`);
-      }
-
-      console.log('Parsed data:', data);
+      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.error || `Server error: ${response.status}`);
@@ -126,6 +115,10 @@ export default function Home() {
     return flags[language] || '';
   };
 
+  if (!mounted) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
       <div className="max-w-4xl mx-auto">
@@ -134,7 +127,7 @@ export default function Home() {
             PDF Translation & Analysis
           </h1>
           <p className="text-gray-600 text-lg">
-            Upload a document, get a translated summary and actionable insights
+            Upload a PDF document, get a translated summary and actionable insights
           </p>
         </div>
 
@@ -146,7 +139,7 @@ export default function Home() {
             </span>
             Select Target Language
           </h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {['spanish', 'french', 'mandarin'].map((lang) => (
               <button
@@ -174,14 +167,14 @@ export default function Home() {
               <span className="bg-indigo-600 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 text-sm">
                 2
               </span>
-              Upload Your Document
+              Upload Your PDF Document
             </h2>
 
             <div className="space-y-4">
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-indigo-400 transition-colors">
                 <input
                   type="file"
-                  accept=".pdf"
+                  accept=".pdf,application/pdf"
                   onChange={handleFileChange}
                   className="hidden"
                   id="file-upload"

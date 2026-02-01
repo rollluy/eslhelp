@@ -4,14 +4,12 @@ import { writeFile, unlink } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
-// Disable default body parser for file uploads
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   let tempFilePath: string | null = null;
   
   try {
-    // Parse form data
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const language = formData.get('language') as string;
@@ -19,10 +17,10 @@ export async function POST(request: NextRequest) {
     console.log('Received request:', { 
       fileName: file?.name, 
       fileSize: file?.size,
+      fileType: file?.type,
       language 
     });
 
-    // Validation
     if (!file) {
       return NextResponse.json(
         { success: false, error: 'No file provided' },
@@ -37,8 +35,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check file type
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
+    // Check file type - accept PDF files
+    if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
       return NextResponse.json(
         { success: false, error: 'Only PDF files are supported' },
         { status: 400 }
@@ -49,7 +47,6 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     
-    // Use OS temp directory
     const tempDir = tmpdir();
     tempFilePath = join(tempDir, `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`);
     
@@ -68,7 +65,6 @@ export async function POST(request: NextRequest) {
       console.error('Error cleaning up temp file:', cleanupError);
     }
 
-    // Check if processing was successful
     if (!result.success) {
       return NextResponse.json(
         { success: false, error: result.error || 'Processing failed' },
@@ -76,7 +72,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Return successful result
     return NextResponse.json({
       success: true,
       translatedSummary: result.translatedSummary,
@@ -90,7 +85,6 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('API Route Error:', error);
     
-    // Clean up temp file on error
     if (tempFilePath) {
       try {
         await unlink(tempFilePath);
