@@ -2,7 +2,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## The Lingator
 
-An accessibility focused application designed with non-native English speakers in mind. A large struggle for many is fully comprehending legal and medical documents. Lingator helps bridge this gap by breaking down complex and sometimes foreign language into clear, understandable explanations using AI-powered analysis.
+An accessibility focused application designed with non-native English speakers in mind. A large struggle for many is fully comprehending legal and medical documents. Lingator helps bridge this gap by breaking down complex and sometimes foreign language into clear, understandable explanations using AI-powered analysis. This application was generated using Claude.ai, OpenAI, and Gemini.
 
 ## Features
 
